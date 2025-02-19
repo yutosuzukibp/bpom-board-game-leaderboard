@@ -5,25 +5,6 @@ import streamlit as st
 
 # ページの設定とCSSによるシンプルなおしゃれデザイン
 st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
-st.markdown(
-    """
-<style>
-body {
-    background-color: #f0f2f6;
-    font-family: 'Helvetica Neue', sans-serif;
-}
-header, .css-18ni7ap, .css-1d391kg { 
-    color: #333333;
-}
-+.block-container {
-    max-width: 1400px;
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
 
 st.title("ジャマイカ成績表")
 
