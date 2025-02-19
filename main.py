@@ -4,7 +4,7 @@ import plotly.express as px
 import streamlit as st
 
 # ページの設定とCSSによるシンプルなおしゃれデザイン
-st.set_page_config(page_title="ボードゲームリーダーボード", layout="wide")
+st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
 st.markdown(
     """
 <style>
@@ -25,12 +25,12 @@ header, .css-18ni7ap, .css-1d391kg {
     unsafe_allow_html=True,
 )
 
-st.title("ボードゲームリーダーボード")
+st.title("ジャマイカ成績表")
 
 # 定数の設定
-SCORE_MEAN = 10  # スコアの平均値
-SCORE_STD = 3  # スコアの標準偏差
-DUMMY_DATA_SIZE = 100  # ダミーデータの件数
+SCORE_MEAN = 5  # スコアの平均値
+SCORE_STD = 2  # スコアの標準偏差
+DUMMY_DATA_SIZE = 20  # ダミーデータの件数
 HIGHLIGHT_COLOR = "#FF4B4B"  # 目立つ赤色
 HIGHLIGHT_BACKGROUND = "rgba(255, 118, 118, 0.4)"  # 透明度を持った赤色の背景
 
@@ -68,8 +68,9 @@ if "leaderboard" not in st.session_state:
     # 最後に登録したユーザー情報を初期化
     st.session_state["last_entry"] = None
 
+
 # 入力フォーム
-with st.form("entry_form"):
+with st.sidebar.form("entry_form"):
     st.subheader("スコアを登録する")
     nickname = st.text_input("ニックネーム")
     category = st.radio("所属", ["社内", "社外"])
@@ -169,7 +170,10 @@ if st.session_state["leaderboard"]:
         fig = px.histogram(
             df_sorted,
             x="スコア",
-            nbins=10,
+            nbins=min(
+                int(df_sorted["スコア"].max() - df_sorted["スコア"].min() + 1),
+                10,  # 最大10区間まで
+            ),
             title="スコア分布",
             color_discrete_sequence=["#69b3a2"],
         )
