@@ -11,9 +11,23 @@ class LeaderboardUI:
     HIGHLIGHT_BACKGROUND = "rgba(255, 118, 118, 0.4)"
     HISTOGRAM_COLOR = "#aaaaaa"
     CELEBRATE_PERCENTILE = 50
+    LEADERBOARD_HEIGHT = 250
 
     def __init__(self):
         st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
+        
+        # タイトルの上の余白を調整とヘッダーを非表示
+        st.markdown("""
+            <style>
+                .block-container {
+                    padding-top: 1rem;
+                }
+                header {
+                    display: none !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        
         st.title("ジャマイカ成績表")
 
     def show_statistics(self, stats: StatisticsResult):
@@ -99,9 +113,9 @@ class LeaderboardUI:
             ).format({"順位": "{:d}位"})
 
             if len(df_sorted) > 20:
-                st.dataframe(styled_df, height=400, hide_index=True, use_container_width=True)
+                st.dataframe(styled_df, height=self.LEADERBOARD_HEIGHT, hide_index=True, use_container_width=True)
             else:
-                st.dataframe(styled_df, hide_index=True, use_container_width=True)
+                st.dataframe(styled_df, height=self.LEADERBOARD_HEIGHT, hide_index=True, use_container_width=True)
 
         with col2:
             st.subheader("スコア分布")
@@ -112,7 +126,6 @@ class LeaderboardUI:
                     int(df_sorted["スコア"].max() - df_sorted["スコア"].min() + 1),
                     10,
                 ),
-                title="スコア分布",
                 color_discrete_sequence=[self.HISTOGRAM_COLOR],
             )
 
@@ -123,12 +136,15 @@ class LeaderboardUI:
                     line_color=self.HIGHLIGHT_COLOR,
                     annotation_text="あなたのスコア",
                     annotation_position="top",
+                    annotation_font_size=18,
+                    annotation_font_color=self.HIGHLIGHT_COLOR,
+                    annotation_font_weight="bold",
                 )
 
             fig.update_layout(
                 xaxis_title="スコア",
                 yaxis_title="人数",
-                height=400,
+                height=self.LEADERBOARD_HEIGHT,
                 margin=dict(t=30, b=0, l=0, r=0),
             )
             st.plotly_chart(fig, use_container_width=True) 
