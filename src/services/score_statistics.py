@@ -46,12 +46,13 @@ class ScoreStatistics:
             {"nickname": s.nickname, "score": s.score}
             for s in self.scores
         ])
-        df_sorted = df.sort_values(by="score", ascending=False).reset_index(drop=True)
+        df_sorted = df.sort_values(by="score", ascending=False)
+        df_sorted["rank"] = df_sorted["score"].rank(method="min", ascending=False)
         rank = int(
             df_sorted[
                 (df_sorted["nickname"] == entry.nickname) & 
                 (df_sorted["score"] == entry.score)
-            ].index[0]
-        ) + 1
+            ]["rank"].iloc[0]
+        )
         total = len(df_sorted)
         return rank, total 

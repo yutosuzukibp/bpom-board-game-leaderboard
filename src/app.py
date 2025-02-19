@@ -19,8 +19,11 @@ class LeaderboardApp:
         scores = st.session_state["scores"]
         stats = ScoreStatistics(scores)
 
+        # 既存のニックネームのリストを作成
+        existing_nicknames = [score.nickname for score in scores]
+
         # スコア入力フォームの表示と処理
-        new_entry = self.ui.show_entry_form()
+        new_entry = self.ui.show_entry_form(existing_nicknames)
 
         # 統計情報の表示（new_entryがNoneの時のみ表示）
         if not new_entry and scores:

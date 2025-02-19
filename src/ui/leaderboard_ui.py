@@ -39,7 +39,7 @@ class LeaderboardUI:
             f"あなたは何点取れるかな？ 👇"
         )
 
-    def show_entry_form(self) -> Optional[ScoreEntry]:
+    def show_entry_form(self, existing_nicknames: List[str]) -> Optional[ScoreEntry]:
         with st.sidebar.form("entry_form"):
             st.subheader("スコアを登録する")
             nickname = st.text_input("ニックネーム")
@@ -47,7 +47,13 @@ class LeaderboardUI:
             score = st.number_input("スコア", min_value=0, step=1, value=0)
             submitted = st.form_submit_button("登録")
 
-            if submitted and nickname:
+            if submitted:
+                if not nickname:
+                    st.error("ニックネームを入力してください")
+                    return None
+                if nickname in existing_nicknames:
+                    st.error("このニックネームは既に使用されています。別のニックネームを入力してください。")
+                    return None
                 return ScoreEntry(nickname=nickname, category=category, score=score)
             return None
 
