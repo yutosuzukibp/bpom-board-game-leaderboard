@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -17,37 +16,22 @@ st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layo
 st.title("ジャマイカ成績表")
 
 
-def generate_dummy_data(size: int, mean: float, std: float) -> list:
-    """
-    ダミーデータを生成する関数
-
-    Args:
-        size (int): 生成するデータの件数
-        mean (float): スコアの平均値
-        std (float): スコアの標準偏差
-
-    Returns:
-        list: 生成されたダミーデータのリスト
-    """
-    dummy_data = []
-    for i in range(1, size + 1):
-        nickname = f"ユーザー{i}"
-        category = np.random.choice(["社内", "社外"])
-        # 正規分布からスコアを生成（負の値は0に調整）
-        score = int(round(np.random.normal(mean, std)))
-        score = max(0, score)
-        dummy_data.append({"ニックネーム": nickname, "所属": category, "スコア": score})
-    return dummy_data
-
-
 # セッション状態にリーダーボードのデータを保持
 if "leaderboard" not in st.session_state:
-    st.session_state["leaderboard"] = []
-    # 定数を使用してダミーデータを生成（初回のみ）
-    st.session_state["leaderboard"] = generate_dummy_data(
-        size=DUMMY_DATA_SIZE, mean=SCORE_MEAN, std=SCORE_STD
-    )
-    # 最後に登録したユーザー情報を初期化
+    try:
+        df_leaderboard = pd.read_csv("data/score.csv")
+    except Exception as e:
+        st.error("CSV読み込みエラー: " + str(e))
+        df_leaderboard = pd.DataFrame(columns=["name", "is_internal", "score"])
+
+    leaderboard_list = []
+    for _, row in df_leaderboard.iterrows():
+        category = (
+            "社内" if str(row["is_internal"]).strip().lower() == "true" else "社外"
+        )
+        entry = {"ニックネーム": row["name"], "所属": category, "スコア": row["score"]}
+        leaderboard_list.append(entry)
+    st.session_state["leaderboard"] = leaderboard_list
     st.session_state["last_entry"] = None
 
 
@@ -65,6 +49,20 @@ if submitted and nickname:
     st.session_state["leaderboard"].append(new_entry)
     # 最後に登録したユーザー情報を保存
     st.session_state["last_entry"] = new_entry
+
+    try:
+        df_csv = pd.read_csv("data/score.csv")
+    except Exception as e:
+        st.error("CSV読み込みエラー（登録時）: " + str(e))
+        df_csv = pd.DataFrame(columns=["name", "is_internal", "score"])
+
+    new_row = {
+        "name": nickname,
+        "is_internal": "true" if category == "社内" else "false",
+        "score": score,
+    }
+    df_csv = pd.concat([df_csv, pd.DataFrame([new_row])], ignore_index=True)
+    df_csv.to_csv("data/score.csv", index=False)
 
     # ランキングを計算
     df = pd.DataFrame(st.session_state["leaderboard"])
