@@ -3,12 +3,10 @@ import plotly.express as px
 import streamlit as st
 
 # 定数の設定
-SCORE_MEAN = 5  # スコアの平均値
-SCORE_STD = 2  # スコアの標準偏差
-DUMMY_DATA_SIZE = 20  # ダミーデータの件数
 HIGHLIGHT_COLOR = "#8B0000"  # BPのテーマカラーは#7F0003だが暗すぎるので若干明るくした
 HIGHLIGHT_BACKGROUND = "rgba(255, 118, 118, 0.4)"  # 透明度を持った赤色の背景
 HISTOGRAM_COLOR = "#aaaaaa"
+CELEBRATE_PERCENTILE = 10
 
 # ページの設定とCSSによるシンプルなおしゃれデザイン
 st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
@@ -34,7 +32,6 @@ if "leaderboard" not in st.session_state:
     st.session_state["leaderboard"] = leaderboard_list
     st.session_state["last_entry"] = None
 
-
 # 入力フォーム
 with st.sidebar.form("entry_form"):
     st.subheader("スコアを登録する")
@@ -42,6 +39,22 @@ with st.sidebar.form("entry_form"):
     category = st.radio("所属", ["社内", "社外"])
     score = st.number_input("スコア", min_value=0, step=1, value=0)
     submitted = st.form_submit_button("登録")
+
+# 統計情報の表示（submittedがFalseの時のみ表示）
+if not submitted and st.session_state["leaderboard"]:
+    df = pd.DataFrame(st.session_state["leaderboard"])
+    max_score = df["スコア"].max()
+    avg_score = round(df["スコア"].mean(), 1)
+    total_players = len(df)
+    top_player = df.loc[df["スコア"].idxmax()]
+    
+    st.info(
+        f"🏆 現在の記録\n\n"
+        f"\t👑 1位: {top_player['ニックネーム']}さん（{max_score}点）\n\n"
+        f"\t📊 平均点: {avg_score}点\n\n"
+        f"\t👥 これまでの挑戦者: {total_players}人\n\n"
+        f"あなたは何点取れるかな？ 👇"
+    )
 
 if submitted and nickname:
     # 新しいエントリを追加
@@ -74,15 +87,26 @@ if submitted and nickname:
         df_sorted[
             (df_sorted["ニックネーム"] == nickname) & (df_sorted["スコア"] == score)
         ].index[0]
-    )
+    ) + 1
     total = len(df_sorted)
     # 上位何%かを計算
     percentile = 100 - int((total - rank) / total * 100)
 
-    st.success(f"おめでとう！上位{percentile}%です！")
-    if percentile <= 10:
+    if percentile <= CELEBRATE_PERCENTILE:
+        st.success(
+            "🎊 おめでとう！！！！ 🎊\n\n"
+            f"\t🏆 あなたの順位は{rank}位です！\n\n"
+            f"\t✨ あなたは上位{percentile}%です！ ✨\n\n"
+            f"\t🌟 素晴らしい成績です！ 🌟"
+        )
         st.balloons()
     else:
+        st.success(
+            f"🎯 結果発表！\n\n"
+            f"\t🏅 あなたの順位は{rank}位です！\n\n"
+            f"\t📊 あなたは上位{percentile}%です！\n\n"
+            f"\t💪 次は更に上を目指そう！"
+        )
         st.snow()
 
 # 登録が1件以上ある場合、ランキングとスコア分布を表示
