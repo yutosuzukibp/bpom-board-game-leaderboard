@@ -3,17 +3,18 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# ページの設定とCSSによるシンプルなおしゃれデザイン
-st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
-
-st.title("ジャマイカ成績表")
-
 # 定数の設定
 SCORE_MEAN = 5  # スコアの平均値
 SCORE_STD = 2  # スコアの標準偏差
 DUMMY_DATA_SIZE = 20  # ダミーデータの件数
-HIGHLIGHT_COLOR = "#FF4B4B"  # 目立つ赤色
+HIGHLIGHT_COLOR = "#8B0000"  # BPのテーマカラーは#7F0003だが暗すぎるので若干明るくした
 HIGHLIGHT_BACKGROUND = "rgba(255, 118, 118, 0.4)"  # 透明度を持った赤色の背景
+HISTOGRAM_COLOR = "#aaaaaa"
+
+# ページの設定とCSSによるシンプルなおしゃれデザイン
+st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
+
+st.title("ジャマイカ成績表")
 
 
 def generate_dummy_data(size: int, mean: float, std: float) -> list:
@@ -156,7 +157,7 @@ if st.session_state["leaderboard"]:
                 10,  # 最大10区間まで
             ),
             title="スコア分布",
-            color_discrete_sequence=["#69b3a2"],
+            color_discrete_sequence=[HISTOGRAM_COLOR],
         )
         # 最後に登録したユーザーのスコアに縦線を追加
         if st.session_state["last_entry"] is not None:
