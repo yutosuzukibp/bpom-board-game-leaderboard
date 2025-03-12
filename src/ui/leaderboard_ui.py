@@ -363,14 +363,69 @@ class LeaderboardUI:
 
         with col2:
             st.subheader("スコア分布")
-            fig = px.histogram(
-                df_sorted,
+
+            # スコアの最小値と最大値を取得
+            min_score = int(df_sorted["スコア"].min())
+            max_score = int(df_sorted["スコア"].max())
+
+            # スコアごとの頻度を計算
+            score_counts = df_sorted["スコア"].value_counts().sort_index()
+
+            # 全てのスコア値（1刻み）を含むインデックスを作成
+            all_scores = pd.Series(range(min_score, max_score + 1))
+
+            # 欠損しているスコア値を0で埋める
+            score_counts = score_counts.reindex(all_scores, fill_value=0)
+
+            # データフレームに変換
+            score_df = pd.DataFrame(
+                {"スコア": score_counts.index, "人数": score_counts.values}
+            )
+
+            # 累積和と累積パーセンテージを計算
+            total_players = len(df_sorted)
+            score_df = score_df.sort_values("スコア", ascending=False)
+            score_df["累積人数"] = score_df["人数"].cumsum()
+            score_df["累積パーセンテージ"] = (
+                score_df["累積人数"] / total_players * 100
+            ).round(1)
+
+            # 棒グラフとライン（累積パーセンテージ）の2軸グラフを作成
+            fig = px.bar(
+                score_df.sort_values("スコア"),  # スコアの昇順にソート
                 x="スコア",
-                nbins=min(
-                    int(df_sorted["スコア"].max() - df_sorted["スコア"].min() + 1),
-                    10,
-                ),
+                y="人数",
                 color_discrete_sequence=[self.HISTOGRAM_COLOR],
+            )
+
+            # 棒グラフに細めのborderを追加
+            fig.update_traces(marker=dict(line=dict(width=1, color="white")))
+
+            # 累積パーセンテージのラインを追加
+            fig2 = px.line(
+                score_df.sort_values("スコア"),  # スコアの昇順にソート
+                x="スコア",
+                y="累積パーセンテージ",
+                markers=True,
+            )
+
+            # 2つのグラフを結合
+            for trace in fig2.data:
+                trace.yaxis = "y2"  # 2つ目のy軸を使用
+                fig.add_trace(trace)
+
+            # 2つ目のy軸を設定
+            fig.update_layout(
+                yaxis2=dict(
+                    title=dict(
+                        text="累積パーセンテージ (%)", font=dict(color="#1f77b4")
+                    ),
+                    tickfont=dict(color="#1f77b4"),
+                    anchor="x",
+                    overlaying="y",
+                    side="right",
+                    range=[0, 100],
+                )
             )
 
             if highlight_entry:
@@ -383,23 +438,44 @@ class LeaderboardUI:
                 )
 
                 if highlight_in_filtered:
+                    # ハイライトエントリのスコアに対応する累積パーセンテージを取得
+                    highlight_score = highlight_entry.score
+                    highlight_percentile = score_df[
+                        score_df["スコア"] >= highlight_score
+                    ]["累積パーセンテージ"].min()
+
+                    # ハイライトエントリの位置に縦線を追加
                     fig.add_vline(
                         x=highlight_entry.score,
                         line_width=2,
                         line_color=self.HIGHLIGHT_COLOR,
-                        annotation_text="あなたのスコア",
+                        annotation_text=f"あなたのスコア (上位{highlight_percentile}%)",
                         annotation_position="top",
-                        annotation_font_size=18,
+                        annotation_font_size=14,
                         annotation_font_color=self.HIGHLIGHT_COLOR,
                         annotation_font_weight="bold",
                     )
 
+            # グラフのレイアウト設定
             fig.update_layout(
                 xaxis_title="スコア",
                 yaxis_title="人数",
                 height=self.LEADERBOARD_HEIGHT,
                 margin=dict(t=30, b=0, l=0, r=0),
+                bargap=0.1,  # バー間のギャップを小さく
             )
+
+            # X軸の設定を別途行う
+            if max_score - min_score < 20:  # スコアの範囲が狭い場合は1刻みで表示
+                fig.update_xaxes(tickmode="linear", dtick=1)
+
+            # 凡例の設定
+            fig.update_layout(
+                legend=dict(
+                    orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1
+                )
+            )
+
             st.plotly_chart(fig, use_container_width=True)
 
             # フィルタリング情報の表示
