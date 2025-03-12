@@ -6,6 +6,9 @@ from .repositories.score_repository import CSVScoreRepository
 from .services.score_statistics import ScoreStatistics
 from .ui.leaderboard_ui import LeaderboardUI
 
+BODY_FONT_SIZE = 15
+ALERT_FONT_SIZE = 15
+DATAFRAME_FONT_SIZE = 20
 class LeaderboardApp:
     def __init__(self):
         self.repository = CSVScoreRepository()
@@ -14,6 +17,29 @@ class LeaderboardApp:
             st.session_state["scores"] = self.repository.load_scores()
         if "last_entry" not in st.session_state:
             st.session_state["last_entry"] = None
+        
+        st.markdown(
+            f"""
+            <style>
+                /* Streamlit全体のフォントサイズを変更 */
+                html, body, [class*="st-"] {{
+                    font-size: {BODY_FONT_SIZE}px !important;
+                }}
+
+                /* info, success, warning, error のフォントサイズ */
+                .stAlert {{
+                    font-size: {ALERT_FONT_SIZE}px !important;
+                }}
+
+                /* DataFrameのフォントサイズ */
+                .dataframe th, .dataframe td {{
+                    font-size: {DATAFRAME_FONT_SIZE}px !important;
+                }}
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
 
     def run(self):
         scores = st.session_state["scores"]

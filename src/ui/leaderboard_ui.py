@@ -12,7 +12,7 @@ class LeaderboardUI:
     HISTOGRAM_COLOR = "#aaaaaa"
     CELEBRATE_PERCENTILE = 50
     LEADERBOARD_HEIGHT = 250
-
+    DATAFRAME_FONT_SIZE = 100
     def __init__(self):
         st.set_page_config(page_title="【ボドゲ部】ジャマイカ成績表", layout="wide")
         
@@ -33,9 +33,9 @@ class LeaderboardUI:
     def show_statistics(self, stats: StatisticsResult):
         st.info(
             f"🏆 現在の記録\n\n"
-            f"\t👑 1位: {stats.top_player.nickname}さん（{stats.max_score}点）\n\n"
-            f"\t📊 平均点: {stats.avg_score}点\n\n"
-            f"\t👥 これまでの挑戦者: {stats.total_players}人\n\n"
+            f"- 👑 1位: {stats.top_player.nickname}さん（{stats.max_score}点）\n"
+            f"- 📊 平均点: {stats.avg_score}点\n"
+            f"- 👥 これまでの挑戦者: {stats.total_players}人\n\n"
             f"あなたは何点取れるかな？ 👇"
         )
 
@@ -110,7 +110,7 @@ class LeaderboardUI:
 
             styled_df = df_sorted.style.apply(
                 lambda _: [
-                    f"background-color: {self.HIGHLIGHT_BACKGROUND}; border-left: 3px solid {self.HIGHLIGHT_COLOR}"
+                    f"background-color: {self.HIGHLIGHT_BACKGROUND}; border-left: 3px solid {self.HIGHLIGHT_COLOR}; font-weight: bold"
                     if i == highlight_index
                     else ""
                     for i in range(len(df_sorted))
