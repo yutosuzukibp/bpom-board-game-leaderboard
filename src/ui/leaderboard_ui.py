@@ -266,7 +266,7 @@ class LeaderboardUI:
             st.session_state["filter_categories"] = set()
             st.session_state["filter_units"] = set()
             st.session_state["filter_ages"] = set()
-            st.experimental_rerun()
+            st.rerun()
 
         return {
             "categories": set(selected_categories),
@@ -406,7 +406,7 @@ class LeaderboardUI:
                 score_df.sort_values("スコア"),  # スコアの昇順にソート
                 x="スコア",
                 y="累積パーセンテージ",
-                markers=True,
+                markers=True,  # マーカーを表示する
             )
 
             # 2つのグラフを結合
@@ -425,6 +425,7 @@ class LeaderboardUI:
                     overlaying="y",
                     side="right",
                     range=[0, 100],
+                    showgrid=False,  # 累積パーセンテージのグリッド線を非表示
                 )
             )
 
@@ -463,6 +464,11 @@ class LeaderboardUI:
                 height=self.LEADERBOARD_HEIGHT,
                 margin=dict(t=30, b=0, l=0, r=0),
                 bargap=0.1,  # バー間のギャップを小さく
+                yaxis=dict(
+                    showgrid=True,  # 棒グラフのグリッド線を表示
+                    gridcolor="lightgray",  # グリッド線の色
+                    gridwidth=1,  # グリッド線の幅
+                ),
             )
 
             # X軸の設定を別途行う
