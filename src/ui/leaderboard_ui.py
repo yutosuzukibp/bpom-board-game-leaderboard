@@ -1,12 +1,13 @@
 import csv
 import random
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
 
 from ..models.score_entry import ScoreEntry
+from ..services.score_filter import ScoreFilterService
 from ..services.score_statistics import StatisticsResult
 
 
@@ -37,6 +38,16 @@ class LeaderboardUI:
         )
 
         st.title("ジャマイカ成績表")
+
+        # フィルタリング状態の初期化
+        if "filter_categories" not in st.session_state:
+            st.session_state["filter_categories"] = set()
+        if "filter_units" not in st.session_state:
+            st.session_state["filter_units"] = set()
+        if "filter_ages" not in st.session_state:
+            st.session_state["filter_ages"] = set()
+        if "show_filters" not in st.session_state:
+            st.session_state["show_filters"] = False
 
     def show_statistics(self, stats: StatisticsResult):
         st.info(
@@ -192,11 +203,103 @@ class LeaderboardUI:
             )
             st.snow()
 
+    def _show_filter_controls(
+        self, filter_service: ScoreFilterService
+    ) -> Dict[str, Set[str]]:
+        """フィルタリングコントロールを表示"""
+        # フィルタ表示の切り替え
+        show_filters = st.checkbox(
+            "フィルタを表示",
+            value=st.session_state["show_filters"],
+            key="show_filters_checkbox",
+        )
+        st.session_state["show_filters"] = show_filters
+
+        if not show_filters:
+            return {"categories": set(), "units": set(), "ages": set()}
+
+        st.subheader("フィルタ設定")
+
+        # 利用可能なフィルタオプションを取得
+        categories = filter_service.get_unique_categories()
+        units = filter_service.get_unique_units()
+        ages = filter_service.get_unique_ages()
+
+        # フィルタコントロールを表示
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            selected_categories = st.multiselect(
+                "所属",
+                options=categories,
+                default=list(st.session_state["filter_categories"])
+                if st.session_state["filter_categories"]
+                else None,
+                key="filter_categories_select",
+            )
+            st.session_state["filter_categories"] = set(selected_categories)
+
+        with col2:
+            selected_units = st.multiselect(
+                "部署",
+                options=units,
+                default=list(st.session_state["filter_units"])
+                if st.session_state["filter_units"]
+                else None,
+                key="filter_units_select",
+            )
+            st.session_state["filter_units"] = set(selected_units)
+
+        with col3:
+            selected_ages = st.multiselect(
+                "年齢",
+                options=ages,
+                default=list(st.session_state["filter_ages"])
+                if st.session_state["filter_ages"]
+                else None,
+                key="filter_ages_select",
+            )
+            st.session_state["filter_ages"] = set(selected_ages)
+
+        # フィルタのリセットボタン
+        if st.button("フィルタをリセット"):
+            st.session_state["filter_categories"] = set()
+            st.session_state["filter_units"] = set()
+            st.session_state["filter_ages"] = set()
+            st.experimental_rerun()
+
+        return {
+            "categories": set(selected_categories),
+            "units": set(selected_units),
+            "ages": set(selected_ages),
+        }
+
     def show_leaderboard(
         self, scores: List[ScoreEntry], highlight_entry: Optional[ScoreEntry] = None
     ):
         if not scores:
             return
+
+        # フィルタリングサービスの初期化
+        filter_service = ScoreFilterService(scores)
+
+        # フィルタコントロールの表示
+        filters = self._show_filter_controls(filter_service)
+
+        # フィルタリングの適用
+        filtered_scores = scores
+        if any([filters["categories"], filters["units"], filters["ages"]]):
+            filtered_scores = filter_service.filter_scores(
+                selected_categories=filters["categories"],
+                selected_units=filters["units"],
+                selected_ages=filters["ages"],
+            )
+
+            if not filtered_scores:
+                st.warning(
+                    "フィルタ条件に一致するデータがありません。フィルタ条件を変更してください。"
+                )
+                return
 
         df = pd.DataFrame(
             [
@@ -207,7 +310,7 @@ class LeaderboardUI:
                     "部署": s.unit if s.is_internal and s.unit else "-",
                     "年齢": s.age if s.age else "-",
                 }
-                for s in scores
+                for s in filtered_scores
             ]
         )
         df_sorted = df.sort_values(by="スコア", ascending=False).reset_index(drop=True)
@@ -271,16 +374,25 @@ class LeaderboardUI:
             )
 
             if highlight_entry:
-                fig.add_vline(
-                    x=highlight_entry.score,
-                    line_width=2,
-                    line_color=self.HIGHLIGHT_COLOR,
-                    annotation_text="あなたのスコア",
-                    annotation_position="top",
-                    annotation_font_size=18,
-                    annotation_font_color=self.HIGHLIGHT_COLOR,
-                    annotation_font_weight="bold",
+                # ハイライトエントリがフィルタリング結果に含まれているか確認
+                highlight_in_filtered = any(
+                    s.adjective == highlight_entry.adjective
+                    and s.animal == highlight_entry.animal
+                    and s.score == highlight_entry.score
+                    for s in filtered_scores
                 )
+
+                if highlight_in_filtered:
+                    fig.add_vline(
+                        x=highlight_entry.score,
+                        line_width=2,
+                        line_color=self.HIGHLIGHT_COLOR,
+                        annotation_text="あなたのスコア",
+                        annotation_position="top",
+                        annotation_font_size=18,
+                        annotation_font_color=self.HIGHLIGHT_COLOR,
+                        annotation_font_weight="bold",
+                    )
 
             fig.update_layout(
                 xaxis_title="スコア",
@@ -289,3 +401,16 @@ class LeaderboardUI:
                 margin=dict(t=30, b=0, l=0, r=0),
             )
             st.plotly_chart(fig, use_container_width=True)
+
+            # フィルタリング情報の表示
+            if any([filters["categories"], filters["units"], filters["ages"]]):
+                filter_info = []
+                if filters["categories"]:
+                    filter_info.append(f"所属: {', '.join(filters['categories'])}")
+                if filters["units"]:
+                    filter_info.append(f"部署: {', '.join(filters['units'])}")
+                if filters["ages"]:
+                    filter_info.append(f"年齢: {', '.join(filters['ages'])}")
+
+                st.caption(f"フィルタ適用中: {' / '.join(filter_info)}")
+                st.caption(f"表示件数: {len(filtered_scores)}件 / 全{len(scores)}件")
