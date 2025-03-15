@@ -482,7 +482,7 @@ class LeaderboardUI:
                         x=highlight_entry.score,
                         line_width=2,
                         line_color=self.HIGHLIGHT_COLOR,
-                        annotation_text=f"あなたのスコア (上位{highlight_percentile}%)",
+                        annotation_text="あなたのスコア",
                         annotation_position="top",
                         annotation_font_size=14,
                         annotation_font_color=self.HIGHLIGHT_COLOR,
