@@ -105,11 +105,6 @@ class LeaderboardUI:
         # 既に使用されている組み合わせを取得
         used_combinations = self._get_used_combinations(existing_entries)
 
-        # 未使用の組み合わせを10個提案
-        suggested_combinations = self._suggest_combinations(
-            adjectives, animals, used_combinations
-        )
-
         # フォームの外でカテゴリを選択
         st.sidebar.subheader("スコアを登録する")
 
@@ -122,21 +117,53 @@ class LeaderboardUI:
         # 社内かどうかのフラグ
         is_internal = category == "社内"
 
-        with st.sidebar.form("entry_form"):
-            # 提案された組み合わせを選択肢として表示
+        # ニックネーム選択状態を保持するためのセッション状態を初期化
+        if "selected_nickname" not in st.session_state:
+            st.session_state["selected_nickname"] = None
+            st.session_state["selected_adjective"] = None
+            st.session_state["selected_animal"] = None
+
+        # ニックネームオプションとマッピングをセッション状態に保存
+        if (
+            "nickname_options" not in st.session_state
+            or not st.session_state["nickname_options"]
+        ):
+            # 未使用の組み合わせを10個提案
+            suggested_combinations = self._suggest_combinations(
+                adjectives, animals, used_combinations
+            )
+
             nickname_options = []
             adjective_animal_map = {}
 
-            if suggested_combinations:
-                for adj, ani in suggested_combinations:
-                    nickname = f"{adj}{ani}"
-                    nickname_options.append(nickname)
-                    adjective_animal_map[nickname] = (adj, ani)
+            for adj, ani in suggested_combinations:
+                nickname = f"{adj}{ani}"
+                nickname_options.append(nickname)
+                adjective_animal_map[nickname] = (adj, ani)
+
+            # セッション状態に保存
+            st.session_state["nickname_options"] = nickname_options
+            st.session_state["adjective_animal_map"] = adjective_animal_map
+
+        with st.sidebar.form("entry_form"):
+            # セッション状態から選択肢を取得
+            nickname_options = st.session_state["nickname_options"]
+            adjective_animal_map = st.session_state["adjective_animal_map"]
+
+            if nickname_options:
+                # 前回選択されたニックネームがあれば、それをデフォルト値として使用
+                default_index = 0
+                if st.session_state["selected_nickname"] in nickname_options:
+                    default_index = nickname_options.index(
+                        st.session_state["selected_nickname"]
+                    )
 
                 selected_nickname = st.selectbox(
                     "ニックネーム",
                     options=nickname_options,
+                    index=default_index,
                     help="以下の未使用の組み合わせから選択してください",
+                    key="nickname_selectbox",
                 )
 
                 if selected_nickname:
@@ -172,6 +199,11 @@ class LeaderboardUI:
                 if not selected_adjective or not selected_animal:
                     st.error("ニックネームを選択してください")
                     return None
+
+                # セッション状態に選択されたニックネーム情報を保存
+                st.session_state["selected_nickname"] = selected_nickname
+                st.session_state["selected_adjective"] = selected_adjective
+                st.session_state["selected_animal"] = selected_animal
 
                 return ScoreEntry(
                     adjective=selected_adjective,
